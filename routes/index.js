@@ -1,44 +1,24 @@
 import { Router } from 'express';
-
 import AppController from '../controllers/AppController';
-import UsersController from '../controllers/UsersController';
 import AuthController from '../controllers/AuthController';
+import UsersController from '../controllers/UsersController';
+import { handleAuthorization, handleXToken } from '../middlewares/auth.middleware';
 import FilesController from '../controllers/FilesController';
-import UtilController from '../controllers/UtilController';
 
-const router = Router();
+const indexRoute = Router();
 
-router.use((request, response, next) => {
-  const paths = ['/connect'];
-  if (!paths.includes(request.path)) {
-    next();
-  } else if (!request.headers.authorization) {
-    response.status(401).json({ error: 'Unauthorized' }).end();
-  } else {
-    next();
-  }
-});
+indexRoute
+  .get('/status', AppController.getStatus)
+  .get('/stats', AppController.getStats)
+  .post('/users', UsersController.postNew)
+  .get('/connect', handleAuthorization, AuthController.getConnect)
+  .get('/disconnect', handleXToken, AuthController.getDisconnect)
+  .get('/users/me', handleXToken, UsersController.getMe)
+  .post('/files', handleXToken, FilesController.postUpload)
+  .get('/files/:id', handleXToken, FilesController.getShow)
+  .get('/files', handleXToken, FilesController.getIndex)
+  .get('/files/:id/data', FilesController.getFile)
+  .put('/files/:id/publish', handleXToken, FilesController.putPublish)
+  .put('/files/:id/unpublish', handleXToken, FilesController.putUnpublish);
 
-router.use((request, response, next) => {
-  const paths = ['/disconnect', '/users/me', '/files'];
-  if (!paths.includes(request.path)) {
-    next();
-  } else if (!request.headers['x-token']) {
-    response.status(401).json({ error: 'Unauthorized' }).end();
-  } else {
-    next();
-  }
-});
-
-router.get('/status', AppController.getStatus);
-router.get('/stats', AppController.getStats);
-router.post('/users', UsersController.postNew);
-router.get('/connect', AuthController.getConnect);
-router.get('/disconnect', AuthController.getDisconnect);
-router.post('/files', FilesController.postUpload);
-router.get('/files/:id', FilesController.getShow);
-router.get('/files', FilesController.getIndex);
-
-router.put('/files/:id/publish', UtilController.token, FilesController.putPublish);
-router.put('/files/:id/unpublish', UtilController.token, FilesController.putUnpublish);
-module.exports = router;
+export default indexRoute;
